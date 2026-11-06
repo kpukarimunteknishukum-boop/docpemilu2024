@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DocuPemilu C.Hasil - Auto Crop & Enhance</title>
+    <title>DocuPemilu C.Hasil - Interactive Preview</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- jsPDF -->
@@ -14,7 +14,7 @@
     <!-- Header -->
     <header class="bg-red-700 text-white p-3 shadow-md text-center">
         <h1 class="text-base font-bold">DocuPemilu C.Hasil</h1>
-        <p class="text-[11px] text-red-100">Auto Crop & Smart Scan C.Hasil</p>
+        <p class="text-[11px] text-red-100">Auto Crop, Smart Scan & Interactive Preview</p>
     </header>
 
     <!-- Konten Utama -->
@@ -69,14 +69,15 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 <span>BUKA KAMERA (AUTO CROP & SCAN)</span>
             </button>
+            <p class="text-[10px] text-gray-400 text-left">*Ketuk gambar di bawah untuk memperbesar & mengecek hasil foto.</p>
 
-            <!-- Pratinjau Daftar Halaman -->
+            <!-- Pratinjau Daftar Halaman (Bisa Diklik) -->
             <div class="text-left pt-2">
                 <div class="flex justify-between items-center mb-1">
                     <span class="text-xs text-gray-300">Total Halaman Terkumpul: <span id="pageCount" class="font-bold text-red-400">0</span></span>
                     <button onclick="clearAllPages()" class="text-[10px] text-red-400 hover:underline">Hapus Semua</button>
                 </div>
-                <div id="previewContainer" class="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto p-1 border border-gray-700 rounded-lg bg-gray-900">
+                <div id="previewContainer" class="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1 border border-gray-700 rounded-lg bg-gray-900">
                     <p class="text-[10px] text-gray-500 col-span-3 text-center py-4">Belum ada foto.</p>
                 </div>
             </div>
@@ -115,10 +116,27 @@
         </div>
     </div>
 
-    <!-- Script Logika Auto Crop & Balanced Magic Color -->
+    <!-- Modal Pratinjau Gambar Penuh (Zoom Preview) -->
+    <div id="previewModal" class="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4 hidden">
+        <div class="w-full max-w-md flex justify-between items-center mb-2 text-white">
+            <span id="previewTitle" class="text-xs font-bold text-red-400">Pratinjau Halaman</span>
+            <button onclick="closePreviewModal()" class="bg-gray-800 text-white rounded-full px-3 py-1 text-xs border border-gray-600">Tutup ✕</button>
+        </div>
+        <div class="relative max-w-md w-full max-h-[75vh] flex items-center justify-center overflow-auto bg-gray-900 border border-gray-700 rounded-xl p-2">
+            <img id="modalImage" src="" class="object-contain max-h-[70vh] rounded">
+        </div>
+        <div class="mt-3 w-full max-w-md flex space-x-2">
+            <button id="deletePreviewBtn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs shadow transition">
+                Hapus Halaman Ini
+            </button>
+        </div>
+    </div>
+
+    <!-- Script Logika Lengkap -->
     <script>
         let livePages = [];
         let mediaStream = null;
+        let currentPreviewIndex = null;
 
         async function openLiveCamera() {
             const modal = document.getElementById('cameraModal');
@@ -167,7 +185,7 @@
             const origWidth = video.videoWidth;
             const origHeight = video.videoHeight;
 
-            // --- 1. AUTO CROP OTOMATIS (Memotong pinggiran frame sekitar 8% agar fokus ke kertas dokumen) ---
+            // Auto Crop Otomatis (potong tepi 8%)
             const cropMarginX = origWidth * 0.08;
             const cropMarginY = origHeight * 0.08;
             const cropWidth = origWidth - (cropMarginX * 2);
@@ -183,31 +201,23 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, cropMarginX, cropMarginY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
 
-            // --- 2. BALANCED MAGIC COLOR FILTER (Terang & Jelas Tanpa Silau Putih) ---
+            // Filter Scanner Seimbang (Terang & Tajam)
             let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             let data = imgData.data;
             
-            let contrast = 1.25; // Kontras seimbang agar garis tabel C.Hasil tetap tegas
-            let brightness = 15; // Pencerahan natural agar kertas bersih tanpa menghilangkan teks tipis
+            let contrast = 1.25;
+            let brightness = 15;
 
             for (let i = 0; i < data.length; i += 4) {
-                let r = data[i];
-                let g = data[i + 1];
-                let b = data[i + 2];
-
-                // Grayscale berbobot dokumen
-                let gray = r * 0.299 + g * 0.587 + b * 0.114;
-                
-                // Terapkan Kontras & Pencerahan Seimbang
+                let gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
                 let corrected = gray * contrast + brightness;
                 if (corrected > 255) corrected = 255;
                 if (corrected < 0) corrected = 0;
 
-                // Batasi agar tidak terlalu silau putih (mempertahankan detail tulisan tangan)
                 if (corrected > 210) {
                     corrected = 255; 
                 } else if (corrected < 100) {
-                    corrected = corrected * 0.7; // Pertahankan kepekatan tulisan tangan
+                    corrected = corrected * 0.7;
                 }
 
                 data[i]     = corrected;
@@ -215,7 +225,6 @@
                 data[i + 2] = corrected;
             }
             ctx.putImageData(imgData, 0, 0);
-            // ---------------------------------------------------------------------
 
             const enhancedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
             livePages.push(enhancedDataUrl);
@@ -237,23 +246,42 @@
             container.innerHTML = '';
             livePages.forEach((imgSrc, index) => {
                 const div = document.createElement('div');
-                div.className = 'relative group border border-gray-700 rounded overflow-hidden bg-black aspect-[3/4] flex items-center justify-center';
+                div.className = 'relative group border border-gray-700 rounded overflow-hidden bg-black aspect-[3/4] flex items-center justify-center cursor-pointer hover:border-red-500 transition';
+                div.onclick = () => openPreviewModal(index);
                 div.innerHTML = `
                     <img src="${imgSrc}" class="object-cover w-full h-full">
-                    <span class="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] px-1 rounded">Hal ${index + 1}</span>
-                    <button onclick="removeImage(${index})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">×</button>
+                    <span class="absolute bottom-1 left-1 bg-black/75 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">Hal ${index + 1} 🔍</span>
                 `;
                 container.appendChild(div);
             });
         }
 
-        function removeImage(index) {
-            livePages.splice(index, 1);
-            updatePreview();
+        function openPreviewModal(index) {
+            currentPreviewIndex = index;
+            const modal = document.getElementById('previewModal');
+            const modalImg = document.getElementById('modalImage');
+            const previewTitle = document.getElementById('previewTitle');
+            
+            previewTitle.textContent = `Pratinjau Halaman Ke-${index + 1}`;
+            modalImg.src = livePages[index];
+            modal.classList.remove('hidden');
+
+            document.getElementById('deletePreviewBtn').onclick = function() {
+                if (confirm(`Hapus Halaman Ke-${index + 1}?`)) {
+                    livePages.splice(index, 1);
+                    closePreviewModal();
+                    updatePreview();
+                }
+            };
+        }
+
+        function closePreviewModal() {
+            document.getElementById('previewModal').classList.add('hidden');
+            currentPreviewIndex = null;
         }
 
         function clearAllPages() {
-            if (confirm("Hapus semua foto?")) {
+            if (confirm("Hapus semua foto yang terkumpul?")) {
                 livePages = [];
                 updatePreview();
             }
