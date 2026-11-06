@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DocuPemilu C.Hasil - Kamera Cepat</title>
+    <title>DocuPemilu C.Hasil - Ultra Stabil</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- jsPDF -->
@@ -14,7 +14,7 @@
     <!-- Header -->
     <header class="bg-red-700 text-white p-4 shadow-md text-center">
         <h1 class="text-base font-bold">DocuPemilu C.Hasil</h1>
-        <p class="text-[11px] text-red-100">Kamera Langsung & Kompresi Otomatis</p>
+        <p class="text-[11px] text-red-100">Sistem Dokumentasi TPS Anti Crash</p>
     </header>
 
     <!-- Konten Utama -->
@@ -61,23 +61,28 @@
             <input type="hidden" id="scriptUrlInput" value="https://script.google.com/macros/s/AKfycbxe3YKCdcvoLAIjEuyRsWV_fV9z_KhV-A31dmWM0bej9zZYdwZB-cR1tg2WNtwyrBCLRg/exec">
         </div>
 
-        <!-- Tombol Buka Kamera Langsung -->
+        <!-- Tombol Tambah Halaman (Satu per Satu untuk Keamanan RAM) -->
         <div class="bg-gray-800 p-3 rounded-xl shadow border border-gray-700 space-y-2 text-center">
             <h2 class="font-semibold text-xs text-red-400 border-b border-gray-700 pb-1 text-left">2. Ambil Foto Halaman C.Hasil</h2>
             
-            <button onclick="openCameraModal()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 shadow">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span>Buka Kamera (Anti Force Close)</span>
-            </button>
+            <div class="flex items-center justify-center w-full">
+                <label for="cameraInput" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 shadow cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span>+ Tambah Foto Halaman (1 per 1)</span>
+                </label>
+                <!-- Tanpa multiple agar diproses satu per satu dengan aman -->
+                <input type="file" id="cameraInput" accept="image/*" class="hidden" onchange="handleSingleImage(event)">
+            </div>
+            <p class="text-[10px] text-gray-400 text-left">*Tekan tombol ini berulang kali untuk Halaman 1, Halaman 2, dst.</p>
 
             <!-- Pratinjau Daftar Halaman -->
             <div class="text-left pt-2">
                 <div class="flex justify-between items-center mb-1">
-                    <span class="text-xs text-gray-300">Total Halaman: <span id="pageCount" class="font-bold text-red-400">0</span></span>
+                    <span class="text-xs text-gray-300">Total Halaman Terkumpul: <span id="pageCount" class="font-bold text-red-400">0</span></span>
                     <button onclick="clearAllPages()" class="text-[10px] text-red-400 hover:underline">Hapus Semua</button>
                 </div>
                 <div id="previewContainer" class="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto p-1 border border-gray-700 rounded-lg bg-gray-900">
-                    <p class="text-[10px] text-gray-500 col-span-3 text-center py-4">Belum ada foto.</p>
+                    <p class="text-[10px] text-gray-500 col-span-3 text-center py-4">Belum ada foto halaman.</p>
                 </div>
             </div>
         </div>
@@ -91,97 +96,68 @@
 
     </main>
 
-    <!-- Modal Kamera Interaktif -->
-    <div id="cameraModal" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-between p-4 hidden">
-        <div class="w-full flex justify-between items-center text-white">
-            <span class="text-xs font-bold">Ambil Foto Halaman C.Hasil</span>
-            <button onclick="closeCameraModal()" class="bg-gray-800 text-white rounded-full px-3 py-1 text-xs">Tutup X</button>
-        </div>
-        
-        <div class="relative w-full max-w-md flex-grow flex items-center justify-center overflow-hidden bg-black">
-            <video id="videoElement" autoplay playsinline class="w-full h-full object-contain"></video>
-            <canvas id="captureCanvas" class="hidden"></canvas>
-        </div>
-
-        <div class="w-full max-w-md pb-4 pt-2 flex justify-center">
-            <button onclick="capturePhoto()" class="w-16 h-16 bg-white rounded-full border-4 border-gray-400 shadow-lg active:scale-95 transition"></button>
-        </div>
-    </div>
-
-    <!-- Script Logika -->
+    <!-- Script Logika Aman RAM -->
     <script>
-        let capturedImages = [];
-        let videoStream = null;
+        let compressedImages = [];
 
-        async function openCameraModal() {
-            const modal = document.getElementById('cameraModal');
-            const video = document.getElementById('videoElement');
-            modal.classList.remove('hidden');
+        function handleSingleImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-            try {
-                videoStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { exact: "environment" } },
-                    audio: false
-                });
-            } catch (err) {
-                try {
-                    videoStream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: "environment" },
-                        audio: false
-                    });
-                } catch (e) {
-                    alert("Gagal mengakses kamera belakang.");
-                    modal.classList.add('hidden');
-                    return;
-                }
-            }
-            video.srcObject = videoStream;
-        }
+            const statusMsg = document.getElementById('statusMessage');
+            statusMsg.textContent = "Mengompresi halaman...";
 
-        function closeCameraModal() {
-            const modal = document.getElementById('cameraModal');
-            modal.classList.add('hidden');
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-        }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // Ukuran sangat ringan & aman untuk RAM HP
+                    let width = img.width;
+                    let height = img.height;
 
-        function capturePhoto() {
-            const video = document.getElementById('videoElement');
-            const canvas = document.getElementById('captureCanvas');
-            
-            // Resolusi dioptimalkan maksimal lebar 900px (Sangat ringan, anti lag, teks tetap sangat terbaca)
-            const MAX_WIDTH = 900;
-            let scale = MAX_WIDTH / video.videoWidth;
-            if (scale > 1) scale = 1;
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_WIDTH) {
+                            width *= MAX_WIDTH / height;
+                            height = MAX_WIDTH;
+                        }
+                    }
 
-            canvas.width = video.videoWidth * scale;
-            canvas.height = video.videoHeight * scale;
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
 
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            // Kompresi kualitas JPEG 60% agar ukuran file PDF kecil & terkirim instan
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-            capturedImages.push(dataUrl);
-
-            updatePreview();
-            closeCameraModal();
+                    // Kompresi JPEG 50% agar file sangat kecil & anti crash
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                    
+                    compressedImages.push(compressedDataUrl);
+                    statusMsg.textContent = "";
+                    updatePreview();
+                };
+            };
+            reader.readAsDataURL(file);
+            event.target.value = ''; // Reset input agar bisa dipakai lagi
         }
 
         function updatePreview() {
             const container = document.getElementById('previewContainer');
             const pageCount = document.getElementById('pageCount');
-            pageCount.textContent = capturedImages.length;
+            pageCount.textContent = compressedImages.length;
 
-            if (capturedImages.length === 0) {
-                container.innerHTML = '<p class="text-[10px] text-gray-500 col-span-3 text-center py-4">Belum ada foto.</p>';
+            if (compressedImages.length === 0) {
+                container.innerHTML = '<p class="text-[10px] text-gray-500 col-span-3 text-center py-4">Belum ada foto halaman.</p>';
                 return;
             }
 
             container.innerHTML = '';
-            capturedImages.forEach((imgSrc, index) => {
+            compressedImages.forEach((imgSrc, index) => {
                 const div = document.createElement('div');
                 div.className = 'relative group border border-gray-700 rounded overflow-hidden bg-black aspect-[3/4] flex items-center justify-center';
                 div.innerHTML = `
@@ -194,13 +170,13 @@
         }
 
         function removeImage(index) {
-            capturedImages.splice(index, 1);
+            compressedImages.splice(index, 1);
             updatePreview();
         }
 
         function clearAllPages() {
             if (confirm("Hapus semua foto?")) {
-                capturedImages = [];
+                compressedImages = [];
                 updatePreview();
             }
         }
@@ -220,7 +196,7 @@
                 return;
             }
 
-            if (capturedImages.length === 0) {
+            if (compressedImages.length === 0) {
                 alert("Ambil minimal 1 foto halaman C.Hasil!");
                 return;
             }
@@ -235,9 +211,9 @@
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 const pageHeight = pdf.internal.pageSize.getHeight();
 
-                for (let i = 0; i < capturedImages.length; i++) {
+                for (let i = 0; i < compressedImages.length; i++) {
                     if (i > 0) pdf.addPage();
-                    const imgData = capturedImages[i];
+                    const imgData = compressedImages[i];
                     await new Promise((resolve) => {
                         const img = new Image();
                         img.src = imgData;
@@ -263,7 +239,7 @@
                     kelurahan: kelurahan,
                     tps: tps,
                     kabupaten: kabupaten,
-                    halaman: capturedImages.length,
+                    halaman: compressedImages.length,
                     fileName: "",
                     pdfBase64: base64Data
                 };
@@ -278,7 +254,7 @@
                 if (result.status === "success") {
                     statusMsg.innerHTML = `<span class="text-green-400 font-bold">Berhasil diunggah!</span>`;
                     alert("Dokumen C.Hasil berhasil disimpan ke Drive & Sheets!");
-                    capturedImages = [];
+                    compressedImages = [];
                     updatePreview();
                     document.getElementById('tps').value = '';
                 } else {
