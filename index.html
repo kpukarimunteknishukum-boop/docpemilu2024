@@ -10,13 +10,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        .crop-handle {
+            width: 24px;
+            height: 24px;
+            background-color: #ef4444;
+            border: 2px solid white;
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            touch-action: none;
+            box-shadow: 0 0 8px rgba(0,0,0,0.5);
+            z-index: 30;
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col justify-between">
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col justify-between select-none">
 
     <!-- Header -->
     <header class="bg-red-700 text-white p-3 shadow-md text-center">
         <h1 class="text-base font-bold">DocuPemilu C.Hasil</h1>
-        <p class="text-[11px] text-red-100">CamScanner Professional Smart Scan</p>
+        <p class="text-[11px] text-red-100">CamScanner Smart Scan & Auto-Crop</p>
     </header>
 
     <!-- Konten Utama -->
@@ -68,7 +82,7 @@
             
             <button id="openCamBtn" onclick="openLiveCamera()" disabled class="w-full bg-gray-600 text-white font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 shadow transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span id="camBtnText">Menyiapkan Engine Scanner (Mohon Tunggu)...</span>
+                <span id="camBtnText">Menyiapkan Engine Scanner...</span>
             </button>
             <p class="text-[10px] text-gray-400 text-left">*Ketuk kotak foto di bawah untuk memperbesar & mengecek hasil.</p>
 
@@ -93,7 +107,7 @@
 
     </main>
 
-    <!-- Modal Kamera -->
+    <!-- Modal Kamera Fullscreen (Tanpa Kotak Pembatas) -->
     <div id="cameraModal" class="fixed inset-0 bg-black z-50 flex flex-col justify-between p-3 hidden">
         <div class="flex justify-between items-center text-white pt-2">
             <span class="text-xs font-bold text-red-400" id="camTitle">Pindai Dokumen C.Hasil</span>
@@ -101,27 +115,43 @@
         </div>
 
         <div class="relative flex-grow flex items-center justify-center overflow-hidden bg-black my-2 rounded-xl border border-gray-800">
-            <video id="videoElement" autoplay playsinline muted class="w-full h-full object-cover"></video>
-            <canvas id="canvasElement" class="hidden"></canvas>
-            
-            <!-- Guideline Box Ala CamScanner -->
-            <div class="absolute inset-6 border-2 border-dashed border-red-500/80 rounded-xl pointer-events-none flex items-start justify-center p-2">
-                <span class="text-[10px] text-white bg-red-600/80 px-2 py-0.5 rounded font-bold shadow">Paskan Dokumen C.Hasil di Dalam Kotak</span>
-            </div>
+            <video id="videoElement" autoplay playsinline muted class="w-full h-full object-contain"></video>
         </div>
 
         <div class="pb-4 flex flex-col items-center space-y-2">
             <button onclick="takeSnapshot()" class="w-16 h-16 bg-white rounded-full border-4 border-red-600 shadow-xl active:scale-90 transition flex items-center justify-center">
                 <div class="w-12 h-12 bg-red-600 rounded-full"></div>
             </button>
-            <p class="text-[10px] text-gray-300">Sentuh tombol untuk memotret & memproses</p>
+            <p class="text-[10px] text-gray-300">Arahkan kamera ke kertas C.Hasil lalu tekan tombol</p>
         </div>
     </div>
 
-    <!-- Modal Pilihan Filter & Preview ala CamScanner -->
+    <!-- Modal Crop Manual 4 Titik (Sesuai Permintaan) -->
+    <div id="cropModal" class="fixed inset-0 bg-black/95 z-50 flex flex-col justify-between p-3 hidden">
+        <div class="flex justify-between items-center text-white pt-2">
+            <span class="text-xs font-bold text-red-400">Atur Sudut Dokumen (Crop)</span>
+            <button onclick="closeCropModal()" class="bg-gray-800 text-white rounded-full px-3 py-1 text-xs border border-gray-600">Batal ✕</button>
+        </div>
+
+        <div id="cropContainer" class="relative flex-grow flex items-center justify-center overflow-hidden my-2 rounded-xl border border-gray-800 bg-gray-900">
+            <canvas id="cropCanvas" class="max-w-full max-h-[60vh] object-contain"></canvas>
+            <!-- 4 Handle Titik Sudut -->
+            <div id="handleTL" class="crop-handle"></div>
+            <div id="handleTR" class="crop-handle"></div>
+            <div id="handleBR" class="crop-handle"></div>
+            <div id="handleBL" class="crop-handle"></div>
+        </div>
+
+        <div class="bg-gray-800 p-3 rounded-xl flex space-x-2 border border-gray-700">
+            <button onclick="retakePhoto()" class="w-1/3 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2.5 rounded-lg text-xs transition">Ulangi Foto</button>
+            <button onclick="applyCropAndProceed()" class="w-2/3 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs shadow transition">Potong & Lanjut Filter ➔</button>
+        </div>
+    </div>
+
+    <!-- Modal Filter CamScanner -->
     <div id="filterModal" class="fixed inset-0 bg-black/95 z-50 flex flex-col justify-between p-3 hidden">
         <div class="flex justify-between items-center text-white pt-2">
-            <span class="text-xs font-bold text-red-400">Atur Filter & Periksa Hasil Scan</span>
+            <span class="text-xs font-bold text-red-400">Pilih Mode Filter</span>
             <button onclick="closeFilterModal()" class="bg-gray-800 text-white rounded-full px-3 py-1 text-xs border border-gray-600">Batal ✕</button>
         </div>
 
@@ -129,7 +159,6 @@
             <img id="filterPreviewImg" src="" class="object-contain max-h-[55vh] rounded shadow-lg">
         </div>
 
-        <!-- Pilihan Mode Filter CamScanner -->
         <div class="bg-gray-800 p-3 rounded-xl space-y-2 border border-gray-700">
             <div class="grid grid-cols-4 gap-1">
                 <button onclick="changeFilterMode('auto')" class="filter-btn bg-red-600 text-white py-1.5 rounded text-[10px] font-bold shadow">Auto Enhance</button>
@@ -139,13 +168,13 @@
             </div>
             
             <div class="flex space-x-2 pt-1">
-                <button onclick="retakePhoto()" class="w-1/3 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2.5 rounded-lg text-xs transition">Ulangi</button>
-                <button onclick="saveProcessedPage()" class="w-2/3 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs shadow transition">Terapkan & Simpan Halaman</button>
+                <button onclick="backToCrop()" class="w-1/3 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2.5 rounded-lg text-xs transition">Kembali Crop</button>
+                <button onclick="saveProcessedPage()" class="w-2/3 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs shadow transition">Terapkan & Simpan</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Zoom Halaman Tersimpan -->
+    <!-- Modal Zoom Preview -->
     <div id="previewModal" class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-3 hidden">
         <div class="w-full max-w-md flex justify-between items-center mb-2 text-white">
             <span id="previewTitle" class="text-xs font-bold text-red-400">Pratinjau Halaman</span>
@@ -161,15 +190,18 @@
         </div>
     </div>
 
-    <!-- Skrip Engine CamScanner & Logika -->
+    <!-- Logic Engine -->
     <script>
         let isCvReady = false;
         let livePages = [];
         let mediaStream = null;
-        let rawCapturedCanvas = null;
+        let originalPhotoCanvas = null;
+        let croppedCanvas = null;
         let currentFilter = 'auto';
 
-        // Inisialisasi OpenCV.js dengan Indikator Status Tombol
+        // Koordinat 4 Titik Crop (TL, TR, BR, BL)
+        let corners = [{x:0, y:0}, {x:0, y:0}, {x:0, y:0}, {x:0, y:0}];
+
         window.addEventListener('load', function() {
             const checkCvInterval = setInterval(() => {
                 if (typeof cv !== 'undefined' && cv.Mat) {
@@ -181,7 +213,6 @@
                     btn.classList.remove('bg-gray-600');
                     btn.classList.add('bg-red-600', 'hover:bg-red-700');
                     btnText.textContent = "BUKA KAMERA (ANTI-SHADOW & SCAN)";
-                    console.log("OpenCV.js Berhasil Dimuat & Siap Digunakan.");
                 }
             }, 500);
         });
@@ -210,8 +241,7 @@
                 video.srcObject = mediaStream;
                 await video.play();
             } catch (err) {
-                console.error("Gagal membuka kamera:", err);
-                alert("Gagal membuka kamera. Pastikan izin kamera diizinkan di browser HP Anda.");
+                alert("Gagal membuka kamera.");
                 closeLiveCamera();
             }
         }
@@ -224,61 +254,187 @@
             }
         }
 
-        // Pengambilan Foto & Pemrosesan Citra Otomatis ala CamScanner (OpenCV)
         function takeSnapshot() {
             const video = document.getElementById('videoElement');
-            if (!video.videoWidth || !video.videoHeight) {
-                alert("Kamera belum siap.");
-                return;
-            }
+            if (!video.videoWidth || !video.videoHeight) return;
 
-            // Tangkap frame video ke dalam canvas sementara
-            let tempCanvas = document.createElement('canvas');
-            tempCanvas.width = video.videoWidth;
-            tempCanvas.height = video.videoHeight;
-            let ctx = tempCanvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+            originalPhotoCanvas = document.createElement('canvas');
+            originalPhotoCanvas.width = video.videoWidth;
+            originalPhotoCanvas.height = video.videoHeight;
+            let ctx = originalPhotoCanvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, originalPhotoCanvas.width, originalPhotoCanvas.height);
 
             closeLiveCamera();
-
-            // Jalankan Algoritma Pemrosesan CamScanner
-            rawCapturedCanvas = processCamScannerImage(tempCanvas);
-            currentFilter = 'auto';
-            showFilterModal();
+            setupCropModal();
         }
 
-        function processCamScannerImage(sourceCanvas) {
-            let src = cv.imread(sourceCanvas);
+        // Setup Layar Crop dengan 4 Handle Interaktif
+        function setupCropModal() {
+            const cropCanvas = document.getElementById('cropCanvas');
+            cropCanvas.width = originalPhotoCanvas.width;
+            cropCanvas.height = originalPhotoCanvas.height;
+            let ctx = cropCanvas.getContext('2d');
+            ctx.drawImage(originalPhotoCanvas, 0, 0);
+
+            // Deteksi Otomatis Sudut Dokumen via OpenCV jika memungkinkan
+            let detected = detectCornersOpenCV(originalPhotoCanvas);
+            if (detected) {
+                corners = detected;
+            } else {
+                // Default 5% Margin jika kontur tidak jelas
+                let w = originalPhotoCanvas.width, h = originalPhotoCanvas.height;
+                corners = [
+                    {x: w * 0.05, y: h * 0.05},
+                    {x: w * 0.95, y: h * 0.05},
+                    {x: w * 0.95, y: h * 0.95},
+                    {x: w * 0.05, y: h * 0.95}
+                ];
+            }
+
+            document.getElementById('cropModal').classList.remove('hidden');
+            updateHandlePositions();
+            initDragHandles();
+        }
+
+        function detectCornersOpenCV(canvas) {
+            try {
+                let src = cv.imread(canvas);
+                let gray = new cv.Mat(), blurred = new cv.Mat(), edged = new cv.Mat();
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+                cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+                cv.canny(blurred, edged, 75, 200);
+
+                let contours = new cv.MatVector(), hierarchy = new cv.Mat();
+                cv.findContours(edged, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+
+                let maxArea = 0, bestCorners = null, imgArea = src.rows * src.cols;
+                for (let i = 0; i < contours.size(); ++i) {
+                    let cnt = contours.get(i);
+                    let area = cv.contourArea(cnt);
+                    if (area > imgArea * 0.15) {
+                        let peri = cv.arcLength(cnt, true);
+                        let approx = new cv.Mat();
+                        cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+                        if (approx.rows === 4 && area > maxArea) {
+                            maxArea = area;
+                            bestCorners = [
+                                {x: approx.data32S[0], y: approx.data32S[1]},
+                                {x: approx.data32S[2], y: approx.data32S[3]},
+                                {x: approx.data32S[4], y: approx.data32S[5]},
+                                {x: approx.data32S[6], y: approx.data32S[7]}
+                            ];
+                        }
+                        approx.delete();
+                    }
+                }
+                src.delete(); gray.delete(); blurred.delete(); edged.delete(); contours.delete(); hierarchy.delete();
+                return bestCorners;
+            } catch(e) {
+                return null;
+            }
+        }
+
+        function updateHandlePositions() {
+            const cropCanvas = document.getElementById('cropCanvas');
+            const rect = cropCanvas.getBoundingClientRect();
+            const scaleX = rect.width / cropCanvas.width;
+            const scaleY = rect.height / cropCanvas.height;
+
+            const handles = [
+                document.getElementById('handleTL'),
+                document.getElementById('handleTR'),
+                document.getElementById('handleBR'),
+                document.getElementById('handleBL')
+            ];
+
+            corners.forEach((pt, idx) => {
+                handles[idx].style.left = `${rect.left + window.scrollX + (pt.x * scaleX)}px`;
+                handles[idx].style.top = `${rect.top + window.scrollY + (pt.y * scaleY)}px`;
+            });
+        }
+
+        function initDragHandles() {
+            const handles = [
+                document.getElementById('handleTL'),
+                document.getElementById('handleTR'),
+                document.getElementById('handleBR'),
+                document.getElementById('handleBL')
+            ];
+
+            handles.forEach((handle, idx) => {
+                const onMove = (e) => {
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const cropCanvas = document.getElementById('cropCanvas');
+                    const rect = cropCanvas.getBoundingClientRect();
+                    
+                    let x = (clientX - rect.left) * (cropCanvas.width / rect.width);
+                    let y = (clientY - rect.top) * (cropCanvas.height / rect.height);
+
+                    x = Math.max(0, Math.min(cropCanvas.width, x));
+                    y = Math.max(0, Math.min(cropCanvas.height, y));
+
+                    corners[idx] = {x, y};
+                    updateHandlePositions();
+                };
+
+                const onEnd = () => {
+                    window.removeEventListener('mousemove', onMove);
+                    window.removeEventListener('mouseup', onEnd);
+                    window.removeEventListener('touchmove', onMove);
+                    window.removeEventListener('touchend', onEnd);
+                };
+
+                const onStart = (e) => {
+                    e.preventDefault();
+                    window.addEventListener('mousemove', onMove);
+                    window.addEventListener('mouseup', onEnd);
+                    window.addEventListener('touchmove', onMove);
+                    window.addEventListener('touchend', onEnd);
+                };
+
+                handle.addEventListener('mousedown', onStart);
+                handle.addEventListener('touchstart', onStart);
+            });
+        }
+
+        function closeCropModal() {
+            document.getElementById('cropModal').classList.add('hidden');
+        }
+
+        function applyCropAndProceed() {
+            // Transformasi Perspektif OpenCV berdasarkan 4 titik sudut yang dipilih
+            let src = cv.imread(originalPhotoCanvas);
+            let [tl, tr, br, bl] = corners;
+
+            let widthA = Math.hypot(br.x - bl.x, br.y - bl.y);
+            let widthB = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+            let maxWidth = Math.max(widthA, widthB);
+
+            let heightA = Math.hypot(tr.x - br.x, tr.y - br.y);
+            let heightB = Math.hypot(tl.x - bl.x, tl.y - bl.y);
+            let maxHeight = Math.max(heightA, heightB);
+
+            let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [tl.x, tl.y, tr.x, tr.y, br.x, br.y, bl.x, bl.y]);
+            let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, maxWidth - 1, 0, maxWidth - 1, maxHeight - 1, 0, maxHeight - 1]);
+
+            let M = cv.getPerspectiveTransform(srcTri, dstTri);
             let dst = new cv.Mat();
-            let gray = new cv.Mat();
+            cv.warpPerspective(src, dst, M, new cv.Size(maxWidth, maxHeight));
 
-            // 1. Grayscale & CLAHE untuk Shadow Removal (Penerangan merata tanpa silau)
-            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-            
-            let clahe = new cv.CLAHE(3.0, new cv.Size(8, 8));
-            let enhancedGray = new cv.Mat();
-            clahe.apply(gray, enhancedGray);
+            croppedCanvas = document.createElement('canvas');
+            cv.imshow(croppedCanvas, dst);
 
-            // 2. Unsharp Masking untuk Mempertajam Teks & Angka C.Hasil
-            let blurred = new cv.Mat();
-            cv.GaussianBlur(enhancedGray, blurred, new cv.Size(0, 0), 3);
-            let sharpened = new cv.Mat();
-            cv.addWeighted(enhancedGray, 1.5, blurred, -0.5, 0, sharpened);
+            src.delete(); dst.delete(); M.delete(); srcTri.delete(); dstTri.delete();
 
-            cv.cvtColor(sharpened, dst, cv.COLOR_GRAY2RGBA);
-
-            let outCanvas = document.createElement('canvas');
-            cv.imshow(outCanvas, dst);
-
-            // Cleanup memori C++ OpenCV
-            src.delete(); dst.delete(); gray.delete(); enhancedGray.delete(); blurred.delete(); sharpened.delete(); clahe.delete();
-            return outCanvas;
+            closeCropModal();
+            showFilterModal();
         }
 
         function showFilterModal() {
             const modal = document.getElementById('filterModal');
             const previewImg = document.getElementById('filterPreviewImg');
-            previewImg.src = getFilteredDataUrl(rawCapturedCanvas, currentFilter);
+            previewImg.src = getFilteredDataUrl(croppedCanvas, currentFilter);
             modal.classList.remove('hidden');
         }
 
@@ -286,16 +442,21 @@
             document.getElementById('filterModal').classList.add('hidden');
         }
 
+        function backToCrop() {
+            closeFilterModal();
+            document.getElementById('cropModal').classList.remove('hidden');
+            updateHandlePositions();
+        }
+
         function changeFilterMode(mode) {
             currentFilter = mode;
-            // Update tombol aktif
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.className = "filter-btn bg-gray-700 text-gray-300 py-1.5 rounded text-[10px] font-semibold";
             });
             event.target.className = "filter-btn bg-red-600 text-white py-1.5 rounded text-[10px] font-bold shadow";
 
             const previewImg = document.getElementById('filterPreviewImg');
-            previewImg.src = getFilteredDataUrl(rawCapturedCanvas, currentFilter);
+            previewImg.src = getFilteredDataUrl(croppedCanvas, currentFilter);
         }
 
         function getFilteredDataUrl(canvas, mode) {
@@ -303,15 +464,24 @@
             let dst = new cv.Mat();
 
             if (mode === 'auto') {
-                dst = src.clone();
+                // CLAHE Anti-Shadow & Sharpening
+                let gray = new cv.Mat();
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+                let clahe = new cv.CLAHE(3.0, new cv.Size(8, 8));
+                let enhanced = new cv.Mat();
+                clahe.apply(gray, enhanced);
+                let blurred = new cv.Mat();
+                cv.GaussianBlur(enhanced, blurred, new cv.Size(0, 0), 3);
+                cv.addWeighted(enhanced, 1.5, blurred, -0.5, 0, dst);
+                cv.cvtColor(dst, dst, cv.COLOR_GRAY2RGBA);
+                gray.delete(); clahe.delete(); enhanced.delete(); blurred.delete();
             } else if (mode === 'magic') {
-                // Magic Color: Mempertahankan warna asli tetapi meningkatkan saturasi & kontras teks
                 let hsv = new cv.Mat();
                 cv.cvtColor(src, hsv, cv.COLOR_RGBA2RGB);
                 cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
                 let channels = new cv.MatVector();
                 cv.split(hsv, channels);
-                channels.get(1).convertTo(channels.get(1), -1, 1.3, 10); // Boost Saturation
+                channels.get(1).convertTo(channels.get(1), -1, 1.3, 10);
                 cv.merge(channels, hsv);
                 cv.cvtColor(hsv, dst, cv.COLOR_HSV2RGBA);
                 hsv.delete(); channels.delete();
@@ -321,7 +491,6 @@
                 cv.cvtColor(g, dst, cv.COLOR_GRAY2RGBA);
                 g.delete();
             } else if (mode === 'bw') {
-                // Black & White (Adaptive Thresholding pekat untuk formulir pemilu)
                 let g = new cv.Mat();
                 cv.cvtColor(src, g, cv.COLOR_RGBA2GRAY);
                 cv.adaptiveThreshold(g, g, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 19, 9);
@@ -337,7 +506,7 @@
         }
 
         function retakePhoto() {
-            closeFilterModal();
+            closeCropModal();
             openLiveCamera();
         }
 
