@@ -2,8 +2,8 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DocuPemilu C.Hasil - 1 Pintu Direct Cam</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocuPemilu C.Hasil - Direct Camera</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- jsPDF -->
@@ -14,11 +14,11 @@
     <!-- Header -->
     <header class="bg-red-700 text-white p-3 shadow-md text-center">
         <h1 class="text-base font-bold">DocuPemilu C.Hasil</h1>
-        <p class="text-[11px] text-red-100">Kamera Direct 1 Pintu - Otomatis PDF, Drive & Sheets</p>
+        <p class="text-[11px] text-red-100">Kamera Langsung 1 Pintu - TPS Aman</p>
     </header>
 
-    <!-- Tampilan Utama (Form & Galeri Pratinjau) -->
-    <main id="mainScreen" class="flex-grow p-3 max-w-lg mx-auto w-full space-y-3">
+    <!-- Konten Utama -->
+    <main class="flex-grow p-3 max-w-lg mx-auto w-full space-y-3">
         
         <!-- Form Keterangan Wilayah -->
         <div class="bg-gray-800 p-3 rounded-xl shadow border border-gray-700 space-y-2">
@@ -61,14 +61,19 @@
             <input type="hidden" id="scriptUrlInput" value="https://script.google.com/macros/s/AKfycbxe3YKCdcvoLAIjEuyRsWV_fV9z_KhV-A31dmWM0bej9zZYdwZB-cR1tg2WNtwyrBCLRg/exec">
         </div>
 
-        <!-- Tombol Buka Mode Kamera 1 Pintu -->
+        <!-- Tombol Kamera Langsung -->
         <div class="bg-gray-800 p-3 rounded-xl shadow border border-gray-700 space-y-2 text-center">
             <h2 class="font-semibold text-xs text-red-400 border-b border-gray-700 pb-1 text-left">2. Ambil Foto Halaman C.Hasil</h2>
             
-            <button onclick="startAppCamera()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 shadow">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span>Buka Kamera Aplikasi</span>
-            </button>
+            <div class="flex items-center justify-center w-full">
+                <label for="cameraInput" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 shadow cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span>Buka Kamera & Foto Dokumen</span>
+                </label>
+                <!-- capture="environment" otomatis membuka kamera belakang HP secara langsung -->
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="handleCameraCapture(event)">
+            </div>
+            <p class="text-[10px] text-gray-400 text-left">*Ketuk tombol di atas, potong/ambil foto dokumen, dan halaman akan langsung masuk otomatis.</p>
 
             <!-- Pratinjau Daftar Halaman -->
             <div class="text-left pt-2">
@@ -91,121 +96,68 @@
 
     </main>
 
-    <!-- Layar Penuh Kamera Aplikasi (Direct Web Cam Stream - 1 Pintu) -->
-    <div id="cameraView" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-between p-3 hidden">
-        <!-- Top Bar -->
-        <div class="w-full flex justify-between items-center text-white px-2 pt-2">
-            <span class="text-xs font-bold text-red-400" id="camTitleInfo">Halaman Ke-1</span>
-            <button onclick="stopAppCamera()" class="bg-gray-800 text-white rounded-full px-3 py-1 text-xs border border-gray-600">Selesai / Kembali ✕</button>
-        </div>
-        
-        <!-- Frame Kamera Video Stream -->
-        <div class="relative w-full max-w-md flex-grow flex items-center justify-center overflow-hidden bg-black my-2 rounded-xl border border-gray-800 shadow-inner">
-            <video id="appVideo" autoplay playsinline muted class="w-full h-full object-contain"></video>
-            <canvas id="appCanvas" class="hidden"></canvas>
-            
-            <!-- Guideline Kotak Pembantu Dokumen -->
-            <div class="absolute inset-4 border-2 border-dashed border-red-500/40 rounded-lg pointer-events-none flex items-center justify-center">
-                <span class="text-[10px] text-red-400/60 bg-black/50 px-2 py-1 rounded">Posisikan Dokumen C.Hasil di Sini</span>
-            </div>
-        </div>
-
-        <!-- Tombol Jepret Kamera -->
-        <div class="w-full max-w-md pb-4 flex flex-col items-center space-y-2">
-            <button onclick="snapPhoto()" class="w-16 h-16 bg-white rounded-full border-4 border-red-600 shadow-xl active:scale-90 transition flex items-center justify-center">
-                <div class="w-12 h-12 bg-red-600 rounded-full"></div>
-            </button>
-            <p class="text-[10px] text-gray-400">Tekan tombol merah untuk mengambil foto</p>
-        </div>
-    </div>
-
-    <!-- Script Logika Kamera 1 Pintu -->
+    <!-- Script Logika -->
     <script>
-        let appImages = [];
-        let streamTrack = null;
+        let capturedPages = [];
 
-        async function startAppCamera() {
-            const cameraView = document.getElementById('cameraView');
-            const video = document.getElementById('appVideo');
-            const camTitleInfo = document.getElementById('camTitleInfo');
-            
-            camTitleInfo.textContent = `Ambil Foto Halaman Ke-${appImages.length + 1}`;
-            cameraView.classList.remove('hidden');
+        function handleCameraCapture(event) {
+            const file = event.target.files[0];
+            if (!file) return;
 
-            try {
-                // Kunci konfigurasi resolusi video rendah di tingkat hardware stream agar sangat ramah RAM
-                const constraints = {
-                    video: {
-                        facingMode: { ideal: "environment" },
-                        width: { ideal: 960, max: 1280 },
-                        height: { ideal: 720, max: 720 }
-                    },
-                    audio: false
+            const statusMsg = document.getElementById('statusMessage');
+            statusMsg.textContent = "Mengompresi foto halaman...";
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // Ukuran optimal agar teks tajam & ramah memori
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_WIDTH) {
+                            width *= MAX_WIDTH / height;
+                            height = MAX_WIDTH;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Kompresi JPEG 50% agar file PDF ringan dan aman dari crash
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                    
+                    capturedPages.push(compressedDataUrl);
+                    statusMsg.textContent = "";
+                    updatePreview();
                 };
-
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = stream;
-                streamTrack = stream;
-                await video.play();
-            } catch (err) {
-                console.error("Error akses kamera:", err);
-                alert("Gagal membuka kamera. Pastikan Anda sudah memberikan izin kamera pada browser HP ini.");
-                stopAppCamera();
-            }
-        }
-
-        function stopAppCamera() {
-            const cameraView = document.getElementById('cameraView');
-            cameraView.classList.add('hidden');
-            if (streamTrack) {
-                streamTrack.getTracks().forEach(track => track.stop());
-                streamTrack = null;
-            }
-        }
-
-        function snapPhoto() {
-            const video = document.getElementById('appVideo');
-            const canvas = document.getElementById('appCanvas');
-
-            if (!video.videoWidth || !video.videoHeight) {
-                alert("Kamera belum siap, tunggu 1-2 detik.");
-                return;
-            }
-
-            // Downscale otomatis gambar ke 750px (teks C.Hasil sangat jelas & aman 100% dari force close)
-            const TARGET_WIDTH = 750;
-            let scale = TARGET_WIDTH / video.videoWidth;
-            if (scale > 1) scale = 1;
-
-            canvas.width = video.videoWidth * scale;
-            canvas.height = video.videoHeight * scale;
-
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            // Kompresi JPEG 50% di latar belakang secara instan
-            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
-            appImages.push(compressedDataUrl);
-
-            updatePreview();
-
-            // Lanjut ke foto halaman berikutnya atau beri notifikasi
-            const camTitleInfo = document.getElementById('camTitleInfo');
-            camTitleInfo.textContent = `Berhasil! Ambil Halaman Ke-${appImages.length + 1}`;
+            };
+            reader.readAsDataURL(file);
+            event.target.value = ''; // Reset input agar bisa memotret halaman berikutnya
         }
 
         function updatePreview() {
             const container = document.getElementById('previewContainer');
             const pageCount = document.getElementById('pageCount');
-            pageCount.textContent = appImages.length;
+            pageCount.textContent = capturedPages.length;
 
-            if (appImages.length === 0) {
+            if (capturedPages.length === 0) {
                 container.innerHTML = '<p class="text-[10px] text-gray-500 col-span-3 text-center py-4">Belum ada foto.</p>';
                 return;
             }
 
             container.innerHTML = '';
-            appImages.forEach((imgSrc, index) => {
+            capturedPages.forEach((imgSrc, index) => {
                 const div = document.createElement('div');
                 div.className = 'relative group border border-gray-700 rounded overflow-hidden bg-black aspect-[3/4] flex items-center justify-center';
                 div.innerHTML = `
@@ -218,13 +170,13 @@
         }
 
         function removeImage(index) {
-            appImages.splice(index, 1);
+            capturedPages.splice(index, 1);
             updatePreview();
         }
 
         function clearAllPages() {
-            if (confirm("Hapus semua foto yang sudah diambil?")) {
-                appImages = [];
+            if (confirm("Hapus semua foto halaman?")) {
+                capturedPages = [];
                 updatePreview();
             }
         }
@@ -244,7 +196,7 @@
                 return;
             }
 
-            if (appImages.length === 0) {
+            if (capturedPages.length === 0) {
                 alert("Ambil minimal 1 foto halaman C.Hasil!");
                 return;
             }
@@ -259,9 +211,9 @@
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 const pageHeight = pdf.internal.pageSize.getHeight();
 
-                for (let i = 0; i < appImages.length; i++) {
+                for (let i = 0; i < capturedPages.length; i++) {
                     if (i > 0) pdf.addPage();
-                    const imgData = appImages[i];
+                    const imgData = capturedPages[i];
                     await new Promise((resolve) => {
                         const img = new Image();
                         img.src = imgData;
@@ -287,7 +239,7 @@
                     kelurahan: kelurahan,
                     tps: tps,
                     kabupaten: kabupaten,
-                    halaman: appImages.length,
+                    halaman: capturedPages.length,
                     fileName: "",
                     pdfBase64: base64Data
                 };
@@ -302,7 +254,7 @@
                 if (result.status === "success") {
                     statusMsg.innerHTML = `<span class="text-green-400 font-bold">Berhasil diunggah!</span>`;
                     alert("Dokumen C.Hasil berhasil disimpan ke Drive & Sheets!");
-                    appImages = [];
+                    capturedPages = [];
                     updatePreview();
                     document.getElementById('tps').value = '';
                 } else {
