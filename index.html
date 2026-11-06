@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DocuPemilu C.Hasil - Direct Camera</title>
+    <title>DocuPemilu C.Hasil - Ultimate</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- jsPDF -->
@@ -14,7 +14,7 @@
     <!-- Header -->
     <header class="bg-red-700 text-white p-3 shadow-md text-center">
         <h1 class="text-base font-bold">DocuPemilu C.Hasil</h1>
-        <p class="text-[11px] text-red-100">Kamera Langsung 1 Pintu - TPS Aman</p>
+        <p class="text-[11px] text-red-100">Sistem Dokumentasi TPS Siap Pakai</p>
     </header>
 
     <!-- Konten Utama -->
@@ -61,19 +61,19 @@
             <input type="hidden" id="scriptUrlInput" value="https://script.google.com/macros/s/AKfycbxe3YKCdcvoLAIjEuyRsWV_fV9z_KhV-A31dmWM0bej9zZYdwZB-cR1tg2WNtwyrBCLRg/exec">
         </div>
 
-        <!-- Tombol Kamera Langsung -->
+        <!-- Tombol Tambah Dokumen -->
         <div class="bg-gray-800 p-3 rounded-xl shadow border border-gray-700 space-y-2 text-center">
-            <h2 class="font-semibold text-xs text-red-400 border-b border-gray-700 pb-1 text-left">2. Ambil Foto Halaman C.Hasil</h2>
+            <h2 class="font-semibold text-xs text-red-400 border-b border-gray-700 pb-1 text-left">2. Ambil / Masukkan Foto C.Hasil</h2>
             
             <div class="flex items-center justify-center w-full">
-                <label for="cameraInput" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 shadow cursor-pointer">
+                <!-- Tombol menggunakan accept="image/*" tanpa paksaan capture kaku agar HP memberikan opsi mulus (Kamera / Galeri) -->
+                <label for="docInput" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 shadow cursor-pointer active:scale-95 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <span>Buka Kamera & Foto Dokumen</span>
+                    <span>AMBIL FOTO / PILIH DOKUMEN</span>
                 </label>
-                <!-- capture="environment" otomatis membuka kamera belakang HP secara langsung -->
-                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="handleCameraCapture(event)">
+                <input type="file" id="docInput" accept="image/*" class="hidden" onchange="processImage(event)">
             </div>
-            <p class="text-[10px] text-gray-400 text-left">*Ketuk tombol di atas, potong/ambil foto dokumen, dan halaman akan langsung masuk otomatis.</p>
+            <p class="text-[10px] text-gray-400 text-left">*Jika opsi kamera muncul saat tombol diketuk, pilih Kamera untuk memotret langsung. Jika tidak, ambil foto pakai kamera biasa lalu pilih dari galeri.</p>
 
             <!-- Pratinjau Daftar Halaman -->
             <div class="text-left pt-2">
@@ -88,7 +88,7 @@
         </div>
 
         <!-- Tombol Kirim -->
-        <button onclick="submitData()" id="submitBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl shadow text-xs transition disabled:bg-gray-600">
+        <button onclick="submitData()" id="submitBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 px-4 rounded-xl shadow text-xs transition disabled:bg-gray-600">
             Kirim & Unggah ke Drive & Sheets
         </button>
 
@@ -98,14 +98,14 @@
 
     <!-- Script Logika -->
     <script>
-        let capturedPages = [];
+        let docPages = [];
 
-        function handleCameraCapture(event) {
+        function processImage(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const statusMsg = document.getElementById('statusMessage');
-            statusMsg.textContent = "Mengompresi foto halaman...";
+            statusMsg.textContent = "Memproses dan mengompresi foto...";
 
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -113,7 +113,7 @@
                 img.src = e.target.result;
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // Ukuran optimal agar teks tajam & ramah memori
+                    const MAX_WIDTH = 900; // Ukuran seimbang agar teks dokumen sangat tajam & ringan
                     let width = img.width;
                     let height = img.height;
 
@@ -134,30 +134,29 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    // Kompresi JPEG 50% agar file PDF ringan dan aman dari crash
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
-                    
-                    capturedPages.push(compressedDataUrl);
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                    docPages.push(compressedDataUrl);
+
                     statusMsg.textContent = "";
                     updatePreview();
                 };
             };
             reader.readAsDataURL(file);
-            event.target.value = ''; // Reset input agar bisa memotret halaman berikutnya
+            event.target.value = '';
         }
 
         function updatePreview() {
             const container = document.getElementById('previewContainer');
             const pageCount = document.getElementById('pageCount');
-            pageCount.textContent = capturedPages.length;
+            pageCount.textContent = docPages.length;
 
-            if (capturedPages.length === 0) {
+            if (docPages.length === 0) {
                 container.innerHTML = '<p class="text-[10px] text-gray-500 col-span-3 text-center py-4">Belum ada foto.</p>';
                 return;
             }
 
             container.innerHTML = '';
-            capturedPages.forEach((imgSrc, index) => {
+            docPages.forEach((imgSrc, index) => {
                 const div = document.createElement('div');
                 div.className = 'relative group border border-gray-700 rounded overflow-hidden bg-black aspect-[3/4] flex items-center justify-center';
                 div.innerHTML = `
@@ -170,13 +169,13 @@
         }
 
         function removeImage(index) {
-            capturedPages.splice(index, 1);
+            docPages.splice(index, 1);
             updatePreview();
         }
 
         function clearAllPages() {
-            if (confirm("Hapus semua foto halaman?")) {
-                capturedPages = [];
+            if (confirm("Hapus semua foto?")) {
+                docPages = [];
                 updatePreview();
             }
         }
@@ -196,8 +195,8 @@
                 return;
             }
 
-            if (capturedPages.length === 0) {
-                alert("Ambil minimal 1 foto halaman C.Hasil!");
+            if (docPages.length === 0) {
+                alert("Ambil atau pilih minimal 1 foto halaman C.Hasil!");
                 return;
             }
 
@@ -211,9 +210,9 @@
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 const pageHeight = pdf.internal.pageSize.getHeight();
 
-                for (let i = 0; i < capturedPages.length; i++) {
+                for (let i = 0; i < docPages.length; i++) {
                     if (i > 0) pdf.addPage();
-                    const imgData = capturedPages[i];
+                    const imgData = docPages[i];
                     await new Promise((resolve) => {
                         const img = new Image();
                         img.src = imgData;
@@ -239,7 +238,7 @@
                     kelurahan: kelurahan,
                     tps: tps,
                     kabupaten: kabupaten,
-                    halaman: capturedPages.length,
+                    halaman: docPages.length,
                     fileName: "",
                     pdfBase64: base64Data
                 };
@@ -254,7 +253,7 @@
                 if (result.status === "success") {
                     statusMsg.innerHTML = `<span class="text-green-400 font-bold">Berhasil diunggah!</span>`;
                     alert("Dokumen C.Hasil berhasil disimpan ke Drive & Sheets!");
-                    capturedPages = [];
+                    docPages = [];
                     updatePreview();
                     document.getElementById('tps').value = '';
                 } else {
